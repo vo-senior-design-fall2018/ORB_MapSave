@@ -24,3 +24,6 @@ lib/
 
 vids/
 sample_vids
+
+os2_client_cli
+os2_server_cli
