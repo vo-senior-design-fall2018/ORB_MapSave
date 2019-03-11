@@ -86,6 +86,15 @@ endif()
 target_link_libraries(${PROJECT_NAME} ${BOOST_SERIALIZATION})
 
 # Build examples
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/sd)
+
+add_executable(os2_server_cli
+sd/server.cc)
+target_link_libraries(os2_server_cli ${PROJECT_NAME})
+
+add_executable(os2_client_cli
+sd/client.cc)
+target_link_libraries(os2_client_cli ${PROJECT_NAME})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
