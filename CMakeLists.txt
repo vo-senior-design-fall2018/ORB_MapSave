@@ -38,12 +38,14 @@ endif()
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
+find_package(Boost 1.54 REQUIRED COMPONENTS serialization)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
+${Boost_INCLUDE_DIR}
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -74,16 +76,17 @@ target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
+${Boost_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 )
 
 message(STATUS "Compile With map save/load function")
-find_library(BOOST_SERIALIZATION boost_serialization)
-if (NOT BOOST_SERIALIZATION)
-    message(FATAL_ERROR "Can't find libboost_serialization")
-endif()
-target_link_libraries(${PROJECT_NAME} ${BOOST_SERIALIZATION})
+#find_library(BOOST_SERIALIZATION boost_serialization)
+#if (NOT BOOST_SERIALIZATION)
+#    message(FATAL_ERROR "Can't find libboost_serialization")
+#endif()
+#target_link_libraries(${PROJECT_NAME} ${BOOST_SERIALIZATION})
 
 # Build examples
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/sd)

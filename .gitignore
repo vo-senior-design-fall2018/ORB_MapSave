@@ -25,5 +25,8 @@ lib/
 vids/
 sample_vids
 
-os2_client_cli
-os2_server_cli
+data/
+Vocabulary/ORBvoc.bin
+Vocabulary/bin_vocabulary
+sd/os2_server_cli
+sd/os2_client_cli
