@@ -24,6 +24,7 @@ lib/
 
 vids/
 sample_vids
+
 data/
 Vocabulary/ORBvoc.bin
 Vocabulary/bin_vocabulary
