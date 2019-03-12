@@ -81,11 +81,14 @@ int main(int argc, char **argv) {
 
       double *ptrTFrame = (double*)&buffer[sizeRGB+sizeD];
 
-      double tFrame = 0.0;
+      //double tFrame = 0.0;
 
       if (!imRGB.isContinuous()) {
         imRGB = imRGB.clone();
       }
+
+      imRGB.data = ptrRGB;
+      imD.data = ptrD;
 
       while (1) {
         nBytes = recv(remoteSocket, &buffer[0], buffer.size(), MSG_WAITALL);
@@ -96,11 +99,11 @@ int main(int argc, char **argv) {
 
         if (nBytes == 0) break;
 
-        memcpy(imRGB.data, ptrRGB, sizeRGB);
-        memcpy(imD.data, ptrD, sizeD);
-        tFrame = *ptrTFrame;
+        //memcpy(imRGB.data, ptrRGB, sizeRGB);
+        //memcpy(imD.data, ptrD, sizeD);
+        //tFrame = *ptrTFrame;
 
-        SLAM.TrackRGBD(imRGB, imD, tFrame);
+        SLAM.TrackRGBD(imRGB, imD, *ptrTFrame);
       }
 
       close(localSocket);
