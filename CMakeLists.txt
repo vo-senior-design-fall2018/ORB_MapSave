@@ -38,14 +38,12 @@ endif()
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
-find_package(Boost 1.54 REQUIRED COMPONENTS serialization)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
-${Boost_INCLUDE_DIR}
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -76,36 +74,27 @@ target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
-${Boost_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 )
 
 message(STATUS "Compile With map save/load function")
-#find_library(BOOST_SERIALIZATION boost_serialization)
-#if (NOT BOOST_SERIALIZATION)
-#    message(FATAL_ERROR "Can't find libboost_serialization")
-#endif()
-#target_link_libraries(${PROJECT_NAME} ${BOOST_SERIALIZATION})
+find_library(BOOST_SERIALIZATION boost_serialization)
+if (NOT BOOST_SERIALIZATION)
+    message(FATAL_ERROR "Can't find libboost_serialization")
+endif()
+target_link_libraries(${PROJECT_NAME} ${BOOST_SERIALIZATION})
 
 # Build examples
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/sd)
 
-add_executable(os2_rgbd_server_cli
-sd/server_rgbd.cc)
-target_link_libraries(os2_rgbd_server_cli ${PROJECT_NAME})
+add_executable(os2_server_cli
+sd/server.cc)
+target_link_libraries(os2_server_cli ${PROJECT_NAME})
 
-add_executable(os2_mono_server_cli
-sd/server_mono.cc)
-target_link_libraries(os2_mono_server_cli ${PROJECT_NAME})
-
-add_executable(os2_rgbd_client_cli
-sd/rgbd_client.cc)
-target_link_libraries(os2_rgbd_client_cli ${PROJECT_NAME})
-
-add_executable(os2_mono_client_cli
-sd/mono_client.cc)
-target_link_libraries(os2_mono_client_cli ${PROJECT_NAME})
+add_executable(os2_client_cli
+sd/client.cc)
+target_link_libraries(os2_client_cli ${PROJECT_NAME})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
