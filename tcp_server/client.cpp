@@ -65,14 +65,7 @@ int main(int argc, char *argv[]) {
 	/* Initialize sockaddr_in data structure */
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(5000); // port
-	/* char ip[50]; */
-	/* if (argc < 2) */ 
-	/* { */
-	/* 	printf("Enter IP address to connect: "); */
-	/* 	gets(ip); */
-	/* } */
-	/* else */
-	/* 	strcpy(ip,argv[1]); */
+
 	char fname[100];
 	if (argc < 2) {
 		printf("Enter the filename to send: ");

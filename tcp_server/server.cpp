@@ -10,11 +10,7 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
 #include <iostream>
-
-#define PORT "3490"  // the port users will be connecting to
 
 #define BACKLOG 10     // how many pending connections queue will hold
 
@@ -23,40 +19,11 @@
 
 struct sockaddr_in c_addr;
 
-void sigchld_handler(int s)
-{
-	// waitpid() might overwrite errno, so we save and restore it:
-	int saved_errno = errno;
-
-	while(waitpid(-1, NULL, WNOHANG) > 0);
-
-	errno = saved_errno;
-}
-
-
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
-	if (sa->sa_family == AF_INET) {
-		return &(((struct sockaddr_in*)sa)->sin_addr);
-	}
-
-	return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
-void gotoxy(int x,int y)
-{
-	printf("%c[%d;%df",0x1B,y,x);
-}
-
 int main(int argc, char *argv[]) {
 
 	system("clear");
-	int connfd = 0, err;
+	int connfd = 0, listenfd = 0, ret;
 	struct sockaddr_in serv_addr;
-	int listenfd = 0, re;
-	char buf[1025];
-	int numrv, ret;
 	uint clen = 0;
 
 	listenfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -90,10 +57,10 @@ int main(int argc, char *argv[]) {
 		connfd = accept(listenfd, (struct sockaddr*)&c_addr, &clen);
 
 		FILE *fp;
-		read(connfd, fname, 256);
-		printf("File Name: %s\n", fname);
-		printf("Receiving file...\n");
-		fp = fopen(fname, "ab");
+		/* read(connfd, fname, 256); */
+		/* printf("File Name: %s\n", fname); */
+		/* printf("Receiving file...\n"); */
+		fp = fopen("test.png", "ab");
 		if (NULL == fp) {
 			perror("fopen");
 			exit(1);
