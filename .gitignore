@@ -30,3 +30,5 @@ Vocabulary/ORBvoc.bin
 Vocabulary/bin_vocabulary
 sd/os2_server_cli
 sd/os2_client_cli
+
+.vscode
