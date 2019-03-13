@@ -57,9 +57,7 @@ int main(int argc, char *argv[]) {
 		connfd = accept(listenfd, (struct sockaddr*)&c_addr, &clen);
 
 		FILE *fp;
-		/* read(connfd, fname, 256); */
-		/* printf("File Name: %s\n", fname); */
-		/* printf("Receiving file...\n"); */
+
 		fp = fopen("test.png", "ab");
 		if (NULL == fp) {
 			perror("fopen");

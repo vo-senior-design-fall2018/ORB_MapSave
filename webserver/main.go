@@ -14,24 +14,18 @@ import (
 )
 
 const bufferSize = 1024
-const maxUploadSize = 2 * 1024 * 1024 // 10 mb
+const maxUploadSize = 2 * 1024 * 1024 // Max 2MB Transfer
 const uploadPath = "./tmp"
 
 func main() {
-	conn, err := net.Dial("tcp", "localhost:5000")
-	if err != nil {
-		panic(err)
-	}
-	defer conn.Close()
-	log.Println("Connected to tcp server.")
-	sendFile(conn, "example.png")
-	// http.HandleFunc("/upload", uploadFileHandler())
+	http.HandleFunc("/upload", uploadFileHandler())
 
-	// fs := http.FileServer(http.Dir(uploadPath))
-	// http.Handle("/files/", http.StripPrefix("/files", fs))
+	fs := http.FileServer(http.Dir(uploadPath))
+	http.Handle("/files/", http.StripPrefix("/files", fs))
 
-	// log.Print("Server started on localhost:8080, use /upload for uploading files and /files/{fileName} for downloading")
-	// log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Starting server at port :8080")
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func uploadFileHandler() http.HandlerFunc {
@@ -88,6 +82,14 @@ func uploadFileHandler() http.HandlerFunc {
 			renderError(w, "CANT_WRITE_FILE", http.StatusInternalServerError)
 			return
 		}
+		conn, err := net.Dial("tcp", "localhost:5000")
+		if err != nil {
+			panic(err)
+		}
+		defer conn.Close()
+		log.Println("Connected to tcp server.")
+
+		sendFile(conn, newPath)
 		w.Write([]byte("SUCCESS"))
 	})
 }
@@ -130,6 +132,6 @@ func sendFile(connection net.Conn, filePath string) {
 		connection.Write(sendBuffer)
 		bytesSent += bufferSize
 	}
-	log.Printf("%d sent\n", bytesSent)
+	log.Printf("%dB sent\n", bytesSent)
 	return
 }
