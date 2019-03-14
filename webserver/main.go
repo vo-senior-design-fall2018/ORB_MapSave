@@ -6,11 +6,13 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"mime"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 const bufferSize = 1024
@@ -113,7 +115,16 @@ func sendFile(connection net.Conn, filePath string) {
 		log.Fatalln(err)
 		return
 	}
-	log.Printf("Sending filename of %s\n", filePath)
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
+
+	fileSize := fillString(strconv.Itoa(int(math.Ceil(float64(fileInfo.Size())/float64(bufferSize)))*bufferSize), 16)
+	connection.Write([]byte(fileSize))
+
 	sendBuffer := make([]byte, bufferSize)
 
 	if err != nil {
@@ -134,4 +145,16 @@ func sendFile(connection net.Conn, filePath string) {
 	}
 	log.Printf("%dB sent\n", bytesSent)
 	return
+}
+
+func fillString(retunString string, toLength int) string {
+	for {
+		lengtString := len(retunString)
+		if lengtString < toLength {
+			retunString = retunString + ":"
+			continue
+		}
+		break
+	}
+	return retunString
 }

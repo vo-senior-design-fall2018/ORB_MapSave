@@ -32,3 +32,4 @@ sd/os2_server_cli
 sd/os2_client_cli
 
 .vscode
+.ccls-cache

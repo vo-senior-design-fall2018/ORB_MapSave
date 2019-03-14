@@ -11,6 +11,9 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <iostream>
+#include <vector>
+#include <opencv2/core/core.hpp>
+#include <System.h>
 
 #define BACKLOG 10     // how many pending connections queue will hold
 
@@ -19,9 +22,12 @@
 
 struct sockaddr_in c_addr;
 
-int parseFileSize(char fileSize[], int n);
-
 int main(int argc, char *argv[]) {
+	if (argc < 4) {
+		std::cout << "usage: ./mono_tcp_server [vocabulary] [configuration file]" 
+			<< std::endl;
+		return 1;
+	}
 
 	system("clear");
 	int connfd = 0, listenfd = 0, ret;
@@ -50,11 +56,10 @@ int main(int argc, char *argv[]) {
 	}
 	char fname[100];
 
-	char fileSize[16];
-	memset(fileSize, '0', sizeof(fileSize));
-
 	char recvBuff[1024];
 	memset(recvBuff, '0', sizeof(recvBuff));
+
+	ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true, false);
 
 	while(1) {
 		clen=sizeof(c_addr);
@@ -71,13 +76,7 @@ int main(int argc, char *argv[]) {
 
 		long double sz = 1;
 		int bytesReceived = 0, totalReceived = 0;
-
-		if ((bytesReceived = read(connfd, fileSize, 16)) < 0) {
-			perror("read");
-			exit(1);
-		}
-
-		int size = parseFileSize(fileSize, 16);
+		std::vector<unsigned char> vData;
 
 		while ((bytesReceived = read(connfd, recvBuff, 1024)) > 0) {
 			totalReceived += bytesReceived;
@@ -88,6 +87,8 @@ int main(int argc, char *argv[]) {
 
 		printf("Total received: %d\n", totalReceived);
 
+		cv::Mat data_mat(vData, true);
+
 		if (bytesReceived < 0) {
 			perror("read");
 			exit(1);
@@ -96,17 +97,4 @@ int main(int argc, char *argv[]) {
 		close(connfd);
 	}
 	return 0;
-}
-
-int parseFileSize(char fileSize[], int n) {
-	int endIdx = 0;
-
-	std::string strFileSize;
-
-	for (int i = 0; i < n; i++) {
-		if (fileSize[i] == ':') break;
-		strFileSize += fileSize[i];
-	}
-
-	return std::stoi(strFileSize);
 }
