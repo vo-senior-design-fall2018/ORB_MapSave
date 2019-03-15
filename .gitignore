@@ -33,3 +33,9 @@ sd/os2_client_cli
 
 .vscode
 .ccls-cache
+.ccls
+
+map.bin
+
+tcp_server/mono_tcp_server
+webserver/tmp

@@ -1,0 +1,4 @@
+g++
+-I/home/yong/anaconda3/envs/sd/include/
+-I/home/yong/anaconda3/envs/sd/lib/
+-Iinclude

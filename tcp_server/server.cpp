@@ -11,6 +11,11 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <iostream>
+#include <vector>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
+#include <System.h>
 
 #define BACKLOG 10     // how many pending connections queue will hold
 
@@ -22,6 +27,11 @@ struct sockaddr_in c_addr;
 int parseFileSize(char fileSize[], int n);
 
 int main(int argc, char *argv[]) {
+
+	if (argc < 3) {
+		fprintf(stderr, "usage: ./mono_tcp_server [vocabulary] [configuration file]\n");
+		return 1;
+	}
 
 	system("clear");
 	int connfd = 0, listenfd = 0, ret;
@@ -48,13 +58,16 @@ int main(int argc, char *argv[]) {
 		printf("Failed to listen\n");
 		return -1;
 	}
-	char fname[100];
 
 	char fileSize[16];
 	memset(fileSize, '0', sizeof(fileSize));
 
-	char recvBuff[1024];
+	unsigned char recvBuff[1024];
 	memset(recvBuff, '0', sizeof(recvBuff));
+
+	std::vector<unsigned char> buffer;
+
+	ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true, 0);
 
 	while(1) {
 		clen=sizeof(c_addr);
@@ -63,7 +76,7 @@ int main(int argc, char *argv[]) {
 
 		FILE *fp;
 
-		fp = fopen("test.png", "ab");
+		fp = fopen("test.png", "w+");
 		if (NULL == fp) {
 			perror("fopen");
 			exit(1);
@@ -93,13 +106,18 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		} else printf("\nFile OK. Transfer Complete\n");
 		fclose(fp);
+
+		cv::Mat img = cv::imread("test.png");
+
+		cv::Mat track = SLAM.TrackMonocular(img, 0.0);
+		std::cout << track << std::endl;
+
 		close(connfd);
 	}
 	return 0;
 }
 
 int parseFileSize(char fileSize[], int n) {
-	int endIdx = 0;
 
 	std::string strFileSize;
 
