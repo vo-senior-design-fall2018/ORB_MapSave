@@ -96,12 +96,16 @@ add_executable(os2_client_cli
 sd/client.cc)
 target_link_libraries(os2_client_cli ${PROJECT_NAME})
 
-# Mono Server Directory
+# TCP Server Directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/tcp_server)
 
 add_executable(mono_tcp_server
-	tcp_server/server.cpp)
+	tcp_server/server_mono.cpp)
 target_link_libraries(mono_tcp_server ${PROJECT_NAME})
+
+# add_executable(rgbd_tcp_server
+# 	tcp_server/server_rgbd.cpp)
+# target_link_libraries(rgbd_tcp_server ${PROJECT_NAME})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 

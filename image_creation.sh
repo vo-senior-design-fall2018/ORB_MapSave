@@ -34,7 +34,7 @@ then
 
 elif [ $rotchoice = "y" ] || [ $rotchoice = "Y" ]
 then
-	ffmpeg -i $inputname -r $fps -vf scale=320:-1,"transpose=1" $outputname/rgb/img%04d.png
+	ffmpeg -i $inputname -r $fps -vf scale=640:-1,"transpose=1" $outputname/rgb/img%04d.png
 
 	```
 else

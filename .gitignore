@@ -39,3 +39,8 @@ map.bin
 
 tcp_server/mono_tcp_server
 webserver/tmp
+rgbd_tcp_server
+tags
+test.png
+
+compile_commands.json

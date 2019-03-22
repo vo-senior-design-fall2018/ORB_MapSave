@@ -19,9 +19,6 @@
 
 #define BACKLOG 10     // how many pending connections queue will hold
 
-#define HEIGHT 320
-#define WIDTH 569
-
 struct sockaddr_in c_addr;
 
 int parseFileSize(char fileSize[], int n);
@@ -39,7 +36,7 @@ int main(int argc, char *argv[]) {
 	uint clen = 0;
 
 	listenfd = socket(AF_INET, SOCK_STREAM, 0);
-	
+
 	serv_addr.sin_family = AF_INET;
 
 	serv_addr.sin_family = AF_INET;
@@ -65,19 +62,24 @@ int main(int argc, char *argv[]) {
 	unsigned char recvBuff[1024];
 	memset(recvBuff, '0', sizeof(recvBuff));
 
-	std::vector<unsigned char> buffer;
-
-	ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true, 0);
+	/* ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true, 0); */
 
 	while(1) {
 		clen=sizeof(c_addr);
 		printf("Waiting...\n");
 		connfd = accept(listenfd, (struct sockaddr*)&c_addr, &clen);
 
-		FILE *fp;
+		FILE *fp_rgb;
+		FILE *fp_depth;
 
-		fp = fopen("test.png", "w+");
-		if (NULL == fp) {
+		fp_rgb = fopen("rgb.png", "w+");
+		fp_depth = fopen("depth.png", "w+");
+
+		if (NULL == fp_rgb) {
+			perror("fopen");
+			exit(1);
+		}
+		if (NULL == fp_depth) {
 			perror("fopen");
 			exit(1);
 		}
@@ -92,11 +94,13 @@ int main(int argc, char *argv[]) {
 
 		int size = parseFileSize(fileSize, 16);
 
+		std::cout << size << std::endl;
+
 		while ((bytesReceived = read(connfd, recvBuff, 1024)) > 0) {
 			totalReceived += bytesReceived;
 			sz++;
 			fflush(stdout);
-			fwrite(recvBuff, 1, bytesReceived, fp);
+			fwrite(recvBuff, 1, bytesReceived, fp_rgb);
 		}
 
 		printf("Total received: %d\n", totalReceived);
@@ -105,12 +109,9 @@ int main(int argc, char *argv[]) {
 			perror("read");
 			exit(1);
 		} else printf("\nFile OK. Transfer Complete\n");
-		fclose(fp);
+		fclose(fp_rgb);
 
 		cv::Mat img = cv::imread("test.png");
-
-		cv::Mat track = SLAM.TrackMonocular(img, 0.0);
-		std::cout << track << std::endl;
 
 		close(connfd);
 	}
