@@ -93,56 +93,52 @@ def main(argv):
 
             t_image_size_bytes = t_header.ImageHeight * t_header.RowStride
             t_image_data = bytes()
-
+            
+            print("this is the image_data: " + str(s_image_data))
+            print("this is the image_size_bytes: " + str(s_image_size_bytes))
+            
+            s_bytes_sent = 0
+            t_bytes_sent = 0
+            print(s_image_size_bytes)
             while len(s_image_data) < s_image_size_bytes:
-                s_remaining_bytes = s_image_size_bytes - len(s_image_data)
-                s_image_data_chunk = s.recv(s_remaining_bytes)
-                if not s_image_data_chunk:
-                    print("ERROR: Failed to receive image data")
-                    sys.exit()
-                s_image_data += s_image_data_chunk
-
-            s_image_array = np.frombuffer(s_image_data, dtype=np.uint8).reshape(
-                (s_header.ImageHeight, s_header.ImageWidth, s_header.PixelStride)
-            )
-
-            while len(t_image_data) < t_image_size_bytes:
-                t_remaining_bytes = t_image_size_bytes - len(t_image_data)
-                t_image_data_chunk = t.recv(t_remaining_bytes)
-                if not t_image_data_chunk:
-                    print("ERROR: Failed to receive image data")
-                    sys.exit()
-                t_image_data += t_image_data_chunk
-
-            t_image_array = np.frombuffer(t_image_data, dtype=np.uint8).reshape(
-                (t_header.ImageHeight, t_header.ImageWidth, t_header.PixelStride)
-            )
-
-            while True:
+                d = s.recv(1024)
+                s_bytes_sent += len(d)
+                if(s_bytes_sent > s_image_size_bytes): 
+                    s_bytes_sent = s_bytes_sent - s_image_size_bytes
+                    d = s.recv(s_bytes_sent)
+                    s_image_data += d
+                    
+                s_image_data += d
+                
                 # Serialize frame
-                s_data = pickle.dumps(s_image_array)
-                t_data = pickle.dumps(t_image_arry)
-
-                # Send message length first
-                # s_message_size = struct.pack("L", len(s_data))  ### CHANGED
-                # t_message_size = struct.pack("L", len(t_data))
-
-                # Then data
+                s_data = pickle.dumps(s_image_data)
                 s_check = s.sendall(s_data)
-
+                
                 if s_check is not None:
                     print("Failed to send s_data")
                     sys.exit()
 
-                print("left front image array sent")
-
+                print("1024 bytes of left front image array sent")
+                
+            while len(t_image_data) < t_image_size_bytes:
+                d = t.recv(1024)
+                t_bytes_sent += len(t)
+                print(t_bytes_sent)
+                t_image_data += t
+                if(t_bytes_sent > t_image_size_bytes): 
+                    t_bytes_sent = t_bytes_sent - t_image_size_bytes
+                    d = t.recv(s_bytes_sent)
+                    t_image_data += d
+                
+                # Serialize frame
+                t_data = pickle.dumps(t_image_data)
                 t_check = t.sendall(t_data)
-
+                
                 if t_check is not None:
-                    print("Failed to send t_data")
+                    print("Failed to send s_data")
                     sys.exit()
 
-                print("right front image array sent")
+                print("1024 bytes of right front image array sent")
 
             if PROCESS:
                 # process image
