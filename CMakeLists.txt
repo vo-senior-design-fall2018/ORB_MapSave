@@ -103,9 +103,13 @@ add_executable(mono_tcp_server
 	tcp_server/server_mono.cpp)
 target_link_libraries(mono_tcp_server ${PROJECT_NAME})
 
-# add_executable(rgbd_tcp_server
-# 	tcp_server/server_rgbd.cpp)
-# target_link_libraries(rgbd_tcp_server ${PROJECT_NAME})
+add_executable(rgbd_tcp_server
+	tcp_server/server_rgbd.cpp)
+target_link_libraries(rgbd_tcp_server ${PROJECT_NAME})
+
+add_executable(stereo_tcp_server
+	tcp_server/server_stereo.cpp)
+target_link_libraries(stereo_tcp_server ${PROJECT_NAME})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
