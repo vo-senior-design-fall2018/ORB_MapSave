@@ -82,7 +82,6 @@ def main(argv):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         t = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = ("localhost", 5000)
     except (socket.error, msg):
         print(
@@ -135,8 +134,6 @@ def main(argv):
             s_bytes_sent = 0
             t_bytes_sent = 0
 
-            sender.connect(server_address)
-
             s_total_sent = 0
 
             while len(s_image_data) < s_image_size_bytes:
@@ -155,20 +152,20 @@ def main(argv):
                     sys.exit()
                 t_image_data += image_data_chunk
 
-            image_array = np.frombuffer(image_data, dtype=np.uint8).reshape(
-                (header.ImageHeight, header.ImageWidth, header.PixelStride)
-            )
+            # cv2.imshow('Image display', image_array)
 
-            print(len(s_image_data))
+            # print(len(s_image_data))
             send_image(s_image_data)
-            # send_image(t_image_data)
+            send_image(t_image_data)
 
-            break
+            # cv2.waitKey(0)
     except KeyboardInterrupt:
         pass
 
     s.close()
     t.close()
+
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":

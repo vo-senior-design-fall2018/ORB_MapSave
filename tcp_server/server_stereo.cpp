@@ -69,10 +69,11 @@ int main(int argc, char *argv[]) {
 
 	std::vector<unsigned char> vectorBuff;
 
+	ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+
 	while(1) {
 		connfd = accept(listenfd, (struct sockaddr*)&c_addr, &clen);
 		clen=sizeof(c_addr);
-		printf("Waiting...\n");
 
 		int bytesReceived = 0, totalReceived = 0;
 
@@ -81,30 +82,32 @@ int main(int argc, char *argv[]) {
 			std::copy(recvBuff, recvBuff + bytesReceived, std::back_inserter(vectorBuff));
 		}
 
-		printf("Total received left: %d; Vector size: %d\n", totalReceived, vectorBuff.size());
+		/* printf("Total received left: %d; Vector size: %d\n", totalReceived, vectorBuff.size()); */
 
 		unsigned char *sockData = &vectorBuff[0];
 
 		cv::Mat leftImg(cv::Size(640, 480), CV_8UC1, sockData);
-		cv::imshow("left img", leftImg);
-		cv::waitKey(0);
+		/* cv::imshow("left img", leftImg); */
 
 		vectorBuff.clear();
 
-/* 		totalReceived = 0, bytesReceived = 0; */
+		/* cv::Mat track = SLAM.TrackMonocular(leftImg, 0.0); */
 
-/* 		while ((bytesReceived = read(connfd, recvBuff, 1024)) > 0) { */
-/* 			totalReceived += bytesReceived; */
-/* 			std::copy(recvBuff, recvBuff + bytesReceived, std::back_inserter(vectorBuff)); */
-/* 		} */
+		totalReceived = 0, bytesReceived = 0;
 
-/* 		sockData = &vectorBuff[0]; */
+		while ((bytesReceived = read(connfd, recvBuff, 1024)) > 0) {
+			totalReceived += bytesReceived;
+			std::copy(recvBuff, recvBuff + bytesReceived, std::back_inserter(vectorBuff));
+		}
+		sockData = &vectorBuff[0];
 
-/* 		cv::Mat rightImg(cv::Size(640, 480), CV_8UC1, sockData); */
-/* 		cv::imshow("right img", rightImg); */
-/* 		cv::waitKey(0); */
+		cv::Mat rightImg(cv::Size(640, 480), CV_8UC1, sockData);
+		SLAM.TrackStereo(leftImg, rightImg, 0.0);
+		/* 		cv::Mat rightImg(cv::Size(640, 480), CV_8UC1, sockData); */
+		/* 		cv::imshow("right img", rightImg); */
+		/* 		cv::waitKey(0); */
 
-/* 		printf("Total received right: %d\n", totalReceived); */
+		/* 		printf("Total received right: %d\n", totalReceived); */
 
 		close(connfd);
 	}
