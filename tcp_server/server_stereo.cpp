@@ -24,6 +24,7 @@ struct sockaddr_in c_addr;
 
 int parseFileSize(char fileSize[], int n);
 double parseTime(char time[], int n);
+void rot90(cv::Mat &matImage, int rotflag);
 
 int main(int argc, char *argv[]) {
 
@@ -61,57 +62,120 @@ int main(int argc, char *argv[]) {
 	char fileSize[16];
 	memset(fileSize, '0', sizeof(fileSize));
 
-	char timeBuffer[16];
+	char timeBuffer[18];
 	memset(timeBuffer, '0', sizeof(timeBuffer));
 
 	unsigned char recvBuff[1024];
 	memset(recvBuff, '0', sizeof(recvBuff));
 
-	std::vector<unsigned char> vectorBuff;
+	std::vector<unsigned char> vectorBuff(640*480*2);
 
-	ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+	// Read rectification parameters
+	cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
+	if(!fsSettings.isOpened())
+	{
+		cerr << "ERROR: Wrong path to settings" << endl;
+		return -1;
+	}
 
+	cv::Mat K_l, K_r, P_l, P_r, R_l, R_r, D_l, D_r;
+	fsSettings["LEFT.K"] >> K_l;
+	fsSettings["RIGHT.K"] >> K_r;
+
+	fsSettings["LEFT.P"] >> P_l;
+	fsSettings["RIGHT.P"] >> P_r;
+
+	fsSettings["LEFT.R"] >> R_l;
+	fsSettings["RIGHT.R"] >> R_r;
+
+	fsSettings["LEFT.D"] >> D_l;
+	fsSettings["RIGHT.D"] >> D_r;
+
+	int rows_l = fsSettings["LEFT.height"];
+	int cols_l = fsSettings["LEFT.width"];
+	int rows_r = fsSettings["RIGHT.height"];
+	int cols_r = fsSettings["RIGHT.width"];
+
+	if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
+			rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
+	{
+		cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << endl;
+		return -1;
+	}
+
+	cv::Mat M1l,M2l,M1r,M2r;
+	cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,M1l,M2l);
+	cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,M1r,M2r);
+
+	ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true,0);
+
+	std::cout << "OpenCV Version: " << CV_VERSION << std::endl;
+
+	connfd = accept(listenfd, (struct sockaddr*)&c_addr, &clen);
 	while(1) {
-		connfd = accept(listenfd, (struct sockaddr*)&c_addr, &clen);
 		clen=sizeof(c_addr);
 
 		int bytesReceived = 0, totalReceived = 0;
 
-		while ((bytesReceived = read(connfd, recvBuff, 1024)) > 0) {
-			totalReceived += bytesReceived;
-			std::copy(recvBuff, recvBuff + bytesReceived, std::back_inserter(vectorBuff));
+		if ((bytesReceived = read(connfd, timeBuffer, 18)) < 0) {
+			perror("read");
+			exit(1);
 		}
+		printf("%d\n", bytesReceived);
 
-		/* printf("Total received left: %d; Vector size: %d\n", totalReceived, vectorBuff.size()); */
+		double timeStamp = parseTime(timeBuffer, 18);
+
+		std::cout << "Timestamp: " << timeStamp << std::endl;
+		int targetSize = 640*480;
+
+		while (totalReceived < targetSize) {
+			bytesReceived = read(connfd, vectorBuff.data() + totalReceived, PACKET_SIZE);
+			totalReceived += bytesReceived;
+		}
 
 		unsigned char *sockData = &vectorBuff[0];
 
 		cv::Mat leftImg(cv::Size(640, 480), CV_8UC1, sockData);
-		/* cv::imshow("left img", leftImg); */
-
-		vectorBuff.clear();
-
-		/* cv::Mat track = SLAM.TrackMonocular(leftImg, 0.0); */
+		rot90(leftImg, 1);
+		/* cv::imshow("Left", leftImg); */
 
 		totalReceived = 0, bytesReceived = 0;
 
-		while ((bytesReceived = read(connfd, recvBuff, 1024)) > 0) {
+		while (totalReceived < targetSize) {
+			bytesReceived = read(connfd, vectorBuff.data()+640*480+totalReceived, 1024);
 			totalReceived += bytesReceived;
-			std::copy(recvBuff, recvBuff + bytesReceived, std::back_inserter(vectorBuff));
 		}
-		sockData = &vectorBuff[0];
-
+		sockData = &vectorBuff[640*480];
 		cv::Mat rightImg(cv::Size(640, 480), CV_8UC1, sockData);
-		SLAM.TrackStereo(leftImg, rightImg, 0.0);
-		/* 		cv::Mat rightImg(cv::Size(640, 480), CV_8UC1, sockData); */
-		/* 		cv::imshow("right img", rightImg); */
-		/* 		cv::waitKey(0); */
+		rot90(rightImg, 1);
+		
+		/* cv::imshow("Right", rightImg); */
 
-		/* 		printf("Total received right: %d\n", totalReceived); */
+		cv::Mat rightImgRect, leftImgRect;
+		cv::remap(leftImg,leftImgRect,M1l,M2l,cv::INTER_LINEAR);
+		cv::remap(rightImg,rightImgRect,M1r,M2r,cv::INTER_LINEAR);
 
-		close(connfd);
+		write(connfd, "1", 1);
+		SLAM.TrackStereo(leftImgRect, rightImgRect, 0.0);
+		cv::waitKey(1);
 	}
+	close(connfd);
 	return 0;
+}
+
+void rot90(cv::Mat &matImage, int rotflag){
+	//1=CW, 2=CCW, 3=180
+	if (rotflag == 1){
+		transpose(matImage, matImage);  
+		flip(matImage, matImage,1); //transpose+flip(1)=CW
+	} else if (rotflag == 2) {
+		transpose(matImage, matImage);  
+		flip(matImage, matImage,0); //transpose+flip(0)=CCW     
+	} else if (rotflag ==3){
+		flip(matImage, matImage,-1);    //flip(-1)=180          
+	} else if (rotflag != 0){ //if not 0,1,2,3:
+		cout  << "Unknown rotation flag(" << rotflag << ")" << endl;
+	}
 }
 
 int parseFileSize(char fileSize[], int n) {
@@ -133,5 +197,7 @@ double parseTime(char time[], int n) {
 		if (time[i] == ':') break;
 		strTime += time[i];
 	}
-	return std::stod(strTime);
+	std::cout << strTime << std::endl;
+
+	return std::stod(strTime) / pow(10, 7);
 }

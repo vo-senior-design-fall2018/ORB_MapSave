@@ -33,8 +33,24 @@ RIGHT_FRONT_PORT = 23945
 PACKET_SIZE = 1024
 
 
-def send_image(np_bytes):
-    # Create a TCP Stream socket
+def send_image(sender, np_bytes):
+    img_length = len(np_bytes)
+    i = 0
+
+    while i < img_length:
+        check = sender.sendall(np_bytes[i : i + PACKET_SIZE])
+        i += (
+            PACKET_SIZE
+            if i + PACKET_SIZE < img_length
+            else img_length - i
+        )
+
+        if check is not None:
+            print("Failed to send s_data")
+            sys.exit()
+
+def main():
+    """Receiver main"""
     try:
         sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = ("localhost", 5000)
@@ -51,27 +67,6 @@ def send_image(np_bytes):
 
     sender.connect(server_address)
 
-    img_length = len(np_bytes)
-
-    i = 0
-
-    while i < img_length:
-        check = sender.sendall(np_bytes[i : i + PACKET_SIZE])
-        i += (
-            PACKET_SIZE
-            if i + PACKET_SIZE < img_length
-            else img_length - i
-        )
-
-        if check is not None:
-            print("Failed to send s_data")
-            sys.exit()
-
-    sender.close()
-
-def main():
-    """Receiver main"""
-
     # Try receive data
     try:
         quit = False
@@ -82,14 +77,17 @@ def main():
             image_size_bytes = img.shape[0] * img.shape[1]
             np_bytes = img.tobytes()
 
-            send_image(np_bytes)
-            # send_image(np_bytes)
+            send_image(sender, np_bytes)
+            print("Done sending img_1")
+            send_image(sender, np_bytes)
+            print("Done sending img_2")
 
-            break
+            data = sender.recv(1)
+
+            print(1)
     except KeyboardInterrupt:
+        sender.close()
         pass
-
-    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
