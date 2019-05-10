@@ -67,70 +67,47 @@ int main(int argc, char *argv[]) {
 	unsigned char recvBuff[1024];
 	memset(recvBuff, '0', sizeof(recvBuff));
 
-	std::vector<unsigned char> leftFrontBuff;
-	std::vector<unsigned char> rightFrontBuff;
+	std::vector<unsigned char> vectorBuff;
 
-	ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::STEREO, true, 0);
-
-	connfd = accept(listenfd, (struct sockaddr*)&c_addr, &clen);
 	while(1) {
+		connfd = accept(listenfd, (struct sockaddr*)&c_addr, &clen);
 		clen=sizeof(c_addr);
 		printf("Waiting...\n");
 
 		int bytesReceived = 0, totalReceived = 0;
 
-		if ((bytesReceived = read(connfd, fileSize, 16)) < 0) {
-			perror("read");
-			exit(1);
-		}
-
-		cv::Mat leftFrontMat = cv::Mat::zeros(480, 640, CV_8UC1),
-				rightFrontMat = cv::Mat::zeros(480, 640, CV_8UC1);
-
-		int size = parseFileSize(fileSize, 16);
-		std::cout << size << std::endl;
-
-		leftFrontBuff.resize(size);
-		rightFrontBuff.resize(size);
-
-		if ((bytesReceived = read(connfd, timeBuffer, 16)) < 0) {
-			perror("read");
-			exit(1);
-		}
-
-		/* double time = parseTime(timeBuffer, 16); */
-
 		while ((bytesReceived = read(connfd, recvBuff, 1024)) > 0) {
 			totalReceived += bytesReceived;
-			std::copy(recvBuff, recvBuff + PACKET_SIZE, std::back_inserter(leftFrontBuff));
-			fflush(stdout);
+			std::copy(recvBuff, recvBuff + bytesReceived, std::back_inserter(vectorBuff));
 		}
 
-		printf("Total received for left front: %d\n", totalReceived);
-		unsigned char *ptrLeftFront = &leftFrontBuff[0];
-		std::memcpy(leftFrontMat.data, ptrLeftFront, totalReceived);
+		printf("Total received left: %d; Vector size: %d\n", totalReceived, vectorBuff.size());
 
-		bytesReceived = 0, totalReceived = 0;
+		unsigned char *sockData = &vectorBuff[0];
 
-		while ((bytesReceived = read(connfd, recvBuff, 1024)) > 0) {
-			totalReceived += bytesReceived;
-			std::copy(recvBuff, recvBuff + PACKET_SIZE, std::back_inserter(rightFrontBuff));
-			fflush(stdout);
-		}
+		cv::Mat leftImg(cv::Size(640, 480), CV_8UC1, sockData);
+		cv::imshow("left img", leftImg);
+		cv::waitKey(0);
 
-		printf("Total received for right front: %d\n", totalReceived);
-		unsigned char *ptrRightFront = &rightFrontBuff[0];
-		std::memcpy(rightFrontMat.data, ptrRightFront, totalReceived);
+		vectorBuff.clear();
 
-		/* cv::Mat img = cv::imread("test.png"); */
+/* 		totalReceived = 0, bytesReceived = 0; */
 
-		/* cv::Mat track = SLAM.TrackStereo(img, time); */
-		/* std::cout << track << std::endl; */
-		leftFrontBuff.clear();
-		rightFrontBuff.clear();
+/* 		while ((bytesReceived = read(connfd, recvBuff, 1024)) > 0) { */
+/* 			totalReceived += bytesReceived; */
+/* 			std::copy(recvBuff, recvBuff + bytesReceived, std::back_inserter(vectorBuff)); */
+/* 		} */
 
+/* 		sockData = &vectorBuff[0]; */
+
+/* 		cv::Mat rightImg(cv::Size(640, 480), CV_8UC1, sockData); */
+/* 		cv::imshow("right img", rightImg); */
+/* 		cv::waitKey(0); */
+
+/* 		printf("Total received right: %d\n", totalReceived); */
+
+		close(connfd);
 	}
-	close(connfd);
 	return 0;
 }
 

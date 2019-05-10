@@ -29,6 +29,42 @@ SENSOR_FRAME_STREAM_HEADER = namedtuple(
 PV_STREAM_PORT = 23940
 LEFT_FRONT_PORT = 23944
 RIGHT_FRONT_PORT = 23945
+PACKET_SIZE = 1024
+
+
+def send_image(np_bytes):
+    # Create a TCP Stream socket
+    try:
+        sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = ("localhost", 5000)
+    except (socket.error, msg):
+        print(
+            "ERROR: Failed to create socket. Code: "
+            + str(msg[0])
+            + ", Message: "
+            + msg[1]
+        )
+        sys.exit()
+
+    print("INFO: Initiating send")
+
+    sender.connect(server_address)
+
+    img_length = len(np_bytes)
+
+    i = 0
+
+    while i < img_length:
+        check = sender.sendall(np_bytes[i : i + PACKET_SIZE])
+        i += PACKET_SIZE if i + PACKET_SIZE < img_length else img_length - i
+
+        if check is not None:
+            print("Failed to send s_data")
+            sys.exit()
+
+    print("Total sent: {}".format(i))
+
+    sender.close()
 
 
 def main(argv):
@@ -46,6 +82,8 @@ def main(argv):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         t = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = ("localhost", 5000)
     except (socket.error, msg):
         print(
             "ERROR: Failed to create socket. Code: "
@@ -93,69 +131,44 @@ def main(argv):
 
             t_image_size_bytes = t_header.ImageHeight * t_header.RowStride
             t_image_data = bytes()
-            
-            print("this is the image_data: " + str(s_image_data))
-            print("this is the image_size_bytes: " + str(s_image_size_bytes))
-            
+
             s_bytes_sent = 0
             t_bytes_sent = 0
-            print(s_image_size_bytes)
+
+            sender.connect(server_address)
+
+            s_total_sent = 0
+
             while len(s_image_data) < s_image_size_bytes:
-                d = s.recv(1024)
-                s_bytes_sent += len(d)
-                if(s_bytes_sent > s_image_size_bytes): 
-                    s_bytes_sent = s_bytes_sent - s_image_size_bytes
-                    d = s.recv(s_bytes_sent)
-                    s_image_data += d
-                    
-                s_image_data += d
-                
-                # Serialize frame
-                s_data = pickle.dumps(s_image_data)
-                s_check = s.sendall(s_data)
-                
-                if s_check is not None:
-                    print("Failed to send s_data")
+                remaining_bytes = s_image_size_bytes - len(s_image_data)
+                image_data_chunk = s.recv(remaining_bytes)
+                if not image_data_chunk:
+                    print("ERROR: Failed to receive image data")
                     sys.exit()
+                s_image_data += image_data_chunk
 
-                print("1024 bytes of left front image array sent")
-                
             while len(t_image_data) < t_image_size_bytes:
-                d = t.recv(1024)
-                t_bytes_sent += len(t)
-                print(t_bytes_sent)
-                t_image_data += t
-                if(t_bytes_sent > t_image_size_bytes): 
-                    t_bytes_sent = t_bytes_sent - t_image_size_bytes
-                    d = t.recv(s_bytes_sent)
-                    t_image_data += d
-                
-                # Serialize frame
-                t_data = pickle.dumps(t_image_data)
-                t_check = t.sendall(t_data)
-                
-                if t_check is not None:
-                    print("Failed to send s_data")
+                remaining_bytes = t_image_size_bytes - len(t_image_data)
+                image_data_chunk = t.recv(remaining_bytes)
+                if not image_data_chunk:
+                    print("ERROR: Failed to receive image data")
                     sys.exit()
+                t_image_data += image_data_chunk
 
-                print("1024 bytes of right front image array sent")
+            image_array = np.frombuffer(image_data, dtype=np.uint8).reshape(
+                (header.ImageHeight, header.ImageWidth, header.PixelStride)
+            )
 
-            if PROCESS:
-                # process image
-                gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
-                image_array = cv2.Canny(gray, 50, 150, apertureSize=3)
-
-            #             cv2.imwrite('left_image.png', s_image_array)
-            #             cv2.imwrite('right_image.png', t_image_array)
+            print(len(s_image_data))
+            send_image(s_image_data)
+            # send_image(t_image_data)
 
             break
-    #             if cv2.waitKey(1) & 0xFF == ord('q'):
-    #                 break
     except KeyboardInterrupt:
         pass
 
     s.close()
-    cv2.destroyAllWindows()
+    t.close()
 
 
 if __name__ == "__main__":

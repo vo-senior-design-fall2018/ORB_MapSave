@@ -111,6 +111,10 @@ add_executable(stereo_tcp_server
 	tcp_server/server_stereo.cpp)
 target_link_libraries(stereo_tcp_server ${PROJECT_NAME})
 
+add_executable(stereo_client
+	tcp_server/stereo_client.cpp)
+target_link_libraries(stereo_client ${PROJECT_NAME})
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
 add_executable(rgbd_tum

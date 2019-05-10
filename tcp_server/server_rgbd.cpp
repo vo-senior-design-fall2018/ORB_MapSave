@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 	unsigned char recvBuff[1024];
 	memset(recvBuff, '0', sizeof(recvBuff));
 
-	/* ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true, 0); */
+	/* ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::RGBD, true, true); */
 
 	while(1) {
 		clen=sizeof(c_addr);
@@ -96,22 +96,42 @@ int main(int argc, char *argv[]) {
 
 		std::cout << size << std::endl;
 
-		while ((bytesReceived = read(connfd, recvBuff, 1024)) > 0) {
+		int depthImageSize = size, rgbImageSize = size;
+
+		while (depthImageSize != 0) {
+			bytesReceived = read(connfd, recvBuff, 1024);
+			totalReceived += bytesReceived;
+			sz++;
+			fflush(stdout);
+			fwrite(recvBuff, 1, bytesReceived, fp_depth);
+			depthImageSize -= bytesReceived;
+		}
+
+		printf("Total received depth: %d\n", totalReceived);
+
+		bytesReceived = 0, totalReceived = 0;
+
+		while (rgbImageSize != 0) {
+			bytesReceived = read(connfd, recvBuff, 1024);
 			totalReceived += bytesReceived;
 			sz++;
 			fflush(stdout);
 			fwrite(recvBuff, 1, bytesReceived, fp_rgb);
+			rgbImageSize -= bytesReceived;
 		}
 
-		printf("Total received: %d\n", totalReceived);
+		printf("Total received rgb: %d\n", totalReceived);
 
 		if (bytesReceived < 0) {
 			perror("read");
 			exit(1);
 		} else printf("\nFile OK. Transfer Complete\n");
 		fclose(fp_rgb);
+		fclose(fp_depth);
 
 		cv::Mat img = cv::imread("test.png");
+
+		write(connfd, "Hello", 16);
 
 		close(connfd);
 	}

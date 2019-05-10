@@ -10,12 +10,14 @@
 #include <vector>
 #include <iostream>
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <arpa/inet.h>
 
 void send_image(int *arg, char fname[100]) {
 	int connfd = (int)*arg;
 
-	write(connfd, fname, 256);
+	/* write(connfd, fname, 256); */
 
 	FILE *fp = fopen(fname, "rb");
 	if (fp == NULL) {
@@ -42,9 +44,31 @@ void send_image(int *arg, char fname[100]) {
 	}
 
 	printf("Total sent: %d\n", totalSent);
+}
 
-	close(connfd);
-	shutdown(connfd, SHUT_WR);
+void send_opencv_image(int *arg, char fname[100]) {
+	int connfd = (int)*arg;
+
+	cv::Mat img = cv::imread(fname, 0);
+
+	if (!img.data) {
+		std::cout <<  "Could not open or find the image" << std::endl;
+	}
+
+	int imgSize = img.total() * img.elemSize();
+	cv::imshow("hello", img);
+	cv::waitKey(0);
+	int totalSent = 0;
+
+	img = (img.reshape(0,1));
+	int bytes = send(connfd, img.data, imgSize, 0);
+
+	printf("Total sent: %d\n", bytes);
+}
+
+void send_sixteen_bits(int *arg, char *data[16]) {
+	int connfd = (int)*arg;
+	write(connfd, data, 16);
 }
 
 int main(int argc, char *argv[]) {
@@ -81,8 +105,10 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	printf("Connected to ip: %s : %d\n", inet_ntoa(serv_addr.sin_addr), ntohs(serv_addr.sin_port));
+	printf("Connected to ip: %s : %d\n", inet_ntoa(serv_addr.sin_addr),
+			ntohs(serv_addr.sin_port));
 
 	send_image(&sockfd, fname);
 	close(sockfd);
+	return 0;
 }
