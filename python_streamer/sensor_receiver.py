@@ -32,7 +32,8 @@ RIGHT_FRONT_PORT = 23945
 PACKET_SIZE = 1024
 
 THRESHHOLD = 0.1
-DIVISOR = 10**7
+DIVISOR = 10 ** 7
+
 
 def send_image(sender, np_bytes):
     # Create a TCP Stream socket
@@ -47,6 +48,7 @@ def send_image(sender, np_bytes):
             print("Failed to send data")
             sys.exit()
 
+
 def send_timestamp(sender, time):
     # print("INFO: Initiating send")
     if sender.sendall(str(time)) != None:
@@ -55,12 +57,14 @@ def send_timestamp(sender, time):
 
 
 def recv_data(socket):
-    reply = socket.recv(struct.calcsize(SENSOR_STREAM_HEADER_FORMAT))
+    reply = socket.recv(struct.calcsize(SENSOR_STREAM_HEADER_FORMAT)) # 32 length
+    print(struct.calcsize(SENSOR_STREAM_HEADER_FORMAT))
     if not reply:
         print("ERROR: Failed to receive data")
         sys.exit()
 
     data = struct.unpack(SENSOR_STREAM_HEADER_FORMAT, reply)
+    print(len(data))
     header = SENSOR_FRAME_STREAM_HEADER(*data)
 
     time = header.Timestamp
@@ -80,8 +84,6 @@ def recv_data(socket):
 
 
 def main(argv):
-
-
 
     """Receiver main"""
     parser = argparse.ArgumentParser()
@@ -128,25 +130,40 @@ def main(argv):
         s_bool, t_bool = True, True
         s_data, t_data = None, None
         img_count = 0
-        start = time.time()
-        sender.connect(server_address)
+        # sender.connect(server_address)
 
         while not quit:
 
-            if s_bool: s_data, s_time = recv_data(s)
-            if t_bool: t_data, t_time = recv_data(t)
+            if s_bool:
+                s_data, s_time = recv_data(s)
+            if t_bool:
+                t_data, t_time = recv_data(t)
 
+            # image_array = np.frombuffer(s_data, dtype=np.uint8).reshape(
+            #     (480, 640, 1)
+            # )
+            # cv2.imshow("Left", image_array)
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+            #     break
             if within_threshhold(s_time, t_time):
                 """
                 Send Image if the threshholds are aligned and reset bools
                 """
                 s_bool, t_bool = True, True
-                img_count += 1
-                send_timestamp(sender, s_time)
-                send_image(sender, s_data)
-                send_image(sender, t_data)
-                # sys.exit()
-                data = sender.recv(1)
+                s_image_array = np.frombuffer(s_data, dtype=np.uint8).reshape(
+                    (480, 640, 1)
+                )
+                t_image_array = np.frombuffer(t_data, dtype=np.uint8).reshape(
+                    (480, 640, 1)
+                )
+                # send_timestamp(sender, s_time)
+                # send_image(sender, s_data)
+                # send_image(sender, t_data)
+                # data = sender.recv(1)
+                cv2.imshow('Left', s_image_array)
+                cv2.imshow('Right', t_image_array)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
             else:
                 if s_time > t_time:
                     s_bool = False
@@ -154,7 +171,6 @@ def main(argv):
                 elif t_time > s_time:
                     t_bool = False
                     s_bool = True
-
 
     except KeyboardInterrupt:
         pass
@@ -172,6 +188,7 @@ def within_threshhold(s_time, t_time):
     t_float_time = float(t_time) / DIVISOR
 
     return abs(s_float_time - t_float_time) < THRESHHOLD
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

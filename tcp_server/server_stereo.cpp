@@ -26,6 +26,15 @@ int parseFileSize(char fileSize[], int n);
 double parseTime(char time[], int n);
 void rot90(cv::Mat &matImage, int rotflag);
 
+ORB_SLAM2::System *slam_ptr;
+
+void my_handler(int s){
+	printf("Caught signal %d\n",s);
+    slam_ptr->Shutdown();
+    slam_ptr->SaveTrajectoryTUM("CameraTrajectory.txt");
+	exit(1); 
+}
+
 int main(int argc, char *argv[]) {
 
 	if (argc < 3) {
@@ -107,7 +116,15 @@ int main(int argc, char *argv[]) {
 	cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,M1l,M2l);
 	cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,M1r,M2r);
 
-	ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true,0);
+	slam_ptr = new ORB_SLAM2::System(argv[1],argv[2],ORB_SLAM2::System::STEREO,true,true);
+
+	struct sigaction sigIntHandler;
+
+	sigIntHandler.sa_handler = my_handler;
+	sigemptyset(&sigIntHandler.sa_mask);
+	sigIntHandler.sa_flags = 0;
+
+	sigaction(SIGINT, &sigIntHandler, NULL);
 
 	std::cout << "OpenCV Version: " << CV_VERSION << std::endl;
 
@@ -121,11 +138,11 @@ int main(int argc, char *argv[]) {
 			perror("read");
 			exit(1);
 		}
-		printf("%d\n", bytesReceived);
+		/* printf("%d\n", bytesReceived); */
 
 		double timeStamp = parseTime(timeBuffer, 18);
 
-		std::cout << "Timestamp: " << timeStamp << std::endl;
+		/* std::cout << "Timestamp: " << timeStamp << std::endl; */
 		int targetSize = 640*480;
 
 		while (totalReceived < targetSize) {
@@ -148,7 +165,7 @@ int main(int argc, char *argv[]) {
 		sockData = &vectorBuff[640*480];
 		cv::Mat rightImg(cv::Size(640, 480), CV_8UC1, sockData);
 		rot90(rightImg, 1);
-		
+
 		/* cv::imshow("Right", rightImg); */
 
 		cv::Mat rightImgRect, leftImgRect;
@@ -156,8 +173,8 @@ int main(int argc, char *argv[]) {
 		cv::remap(rightImg,rightImgRect,M1r,M2r,cv::INTER_LINEAR);
 
 		write(connfd, "1", 1);
-		SLAM.TrackStereo(leftImgRect, rightImgRect, 0.0);
-		cv::waitKey(1);
+		slam_ptr->TrackStereo(leftImgRect, rightImgRect, timeStamp);
+		/* cv::waitKey(1); */
 	}
 	close(connfd);
 	return 0;
@@ -197,7 +214,6 @@ double parseTime(char time[], int n) {
 		if (time[i] == ':') break;
 		strTime += time[i];
 	}
-	std::cout << strTime << std::endl;
 
 	return std::stod(strTime) / pow(10, 7);
 }

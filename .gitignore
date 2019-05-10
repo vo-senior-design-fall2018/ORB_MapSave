@@ -39,6 +39,8 @@ map.bin
 
 tcp_server/mono_tcp_server
 tcp_server/stereo_tcp_server
+tcp_server/stereo_client
+tcp_server/hololens
 webserver/tmp
 rgbd_tcp_server
 tags

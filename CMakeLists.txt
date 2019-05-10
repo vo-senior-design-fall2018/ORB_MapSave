@@ -115,6 +115,10 @@ add_executable(stereo_client
 	tcp_server/stereo_client.cpp)
 target_link_libraries(stereo_client ${PROJECT_NAME})
 
+add_executable(hololens
+	tcp_server/hololens.cpp)
+target_link_libraries(hololens ${PROJECT_NAME})
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
 add_executable(rgbd_tum
