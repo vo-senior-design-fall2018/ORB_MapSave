@@ -32,7 +32,11 @@ make -j
 
 cd ..
 
-cd Vocabulary
-echo "Converting vocabulary to binary version"
-./bin_vocabulary
-cd ..
+if [ ! -f Vocabulary/ORBvoc.bin ]; then
+	cd Vocabulary
+	echo "Converting vocabulary to binary version"
+	./bin_vocabulary
+	cd ..
+else
+	echo "Vocabulary binary already exists. Skipping."
+fi
